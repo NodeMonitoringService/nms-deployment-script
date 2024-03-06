@@ -124,7 +124,7 @@ check_root() {
 }
 
 create_temp_directory() {
-    tmp_dir="/tmp/${script_name}.$RANDOM.$RANDOM.$RANDOM.$$"
+    tmp_dir="/tmp/${script_name}.$RANDOM.$$"
     (mkdir "${tmp_dir}") || {
         log "error" "Temp directory ${tmp_dir} could not be created." true
         die "Error: Could not create temp directory." 1
@@ -138,8 +138,8 @@ download_nms_repo() {
         read -p "Do you want to proceed with the download? [Y/n]: " answer
         case $answer in
             [Yy]* )
-                log "info" "Cloning repository into temp directory ${tmp_dir}..." false
-                git clone "${repo_url}" "${tmp_dir}" || {
+                log "info" "Cloning repository into temp directory ${repo_dir}..." false
+                git clone "${repo_url}" "${repo_dir}" || {
                 die "error" "Could not clone the repository ${repo_url} to ${tmp_dir}" true
                 }
                 break
@@ -312,10 +312,10 @@ fetch_configuration_values() {
     
     # Stack Config
     stack_filter=".stack_config"
-    prometheus_install=$(jq -r '.stack_config[] | select(.name == "Prometheus") | .name' "$config_json" >/dev/null && echo "true" || echo "false")
-    exporter_install=$(jq -r '.stack_config[] | select(.name == "Node Exporter") | .name' "$config_json" >/dev/null && echo "true" || echo "false")
-    promtail_install=$(jq -r '.stack_config[] | select(.name == "Promtail") | .name' "$config_json" >/dev/null && echo "true" || echo "false")
-    cadvisor_install=$(jq -r '.stack_config[] | select(.name == "cAdvisor") | .name' "$config_json" >/dev/null && echo "true" || echo "false")
+    prometheus_install=$(jq -r '.stack_config[] | select(.name == "Prometheus") | .name' "$config_json" | grep -q . && echo "true" || echo "false")
+    exporter_install=$(jq -r '.stack_config[] | select(.name == "Node Exporter") | .name' "$config_json" | grep -q . && echo "true" || echo "false")
+    promtail_install=$(jq -r '.stack_config[] | select(.name == "Promtail") | .name' "$config_json" | grep -q . && echo "true" || echo "false")
+    cadvisor_install=$(jq -r '.stack_config[] | select(.name == "cAdvisor") | .name' "$config_json" | grep -q . && echo "true" || echo "false")
     
     # Container Ports
     if $prometheus_install; then
