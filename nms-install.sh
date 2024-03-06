@@ -28,10 +28,6 @@ CYAN=`tput setaf 6`
 RESET=`tput setaf 7`
 
 ## Variables
-install_dir=""
-conf_file=""
-tmp_dir=""
-repo_dir=""
 # read-only variables
 readonly script_name=$(basename "$0")
 readonly script_dir=$(dirname "$(realpath "$0")")
@@ -43,6 +39,16 @@ readonly node_exporter_container_name="nms-node-exporter"
 readonly prometheus_container_name="nms-prometheus"
 readonly promtail_container_name="nms-promtail"
 readonly cadvisor_container_name="nms-cadvisor"
+# init
+install_dir=""
+conf_file=""
+tmp_dir=""
+repo_dir=""
+prometheus_retention_time=""
+prometheus_port=""
+node_exporter_port=""
+promtail_port=""
+cadvisor_port=""
 
 ## Functions
 usage() {
@@ -126,8 +132,7 @@ check_root() {
 create_temp_directory() {
     tmp_dir="/tmp/${script_name}.$RANDOM.$$"
     (mkdir "${tmp_dir}") || {
-        log "error" "Temp directory ${tmp_dir} could not be created." true
-        die "Error: Could not create temp directory." 1
+        die "error" "Temp directory ${tmp_dir} could not be created." true
     }
     repo_dir="$tmp_dir/nms-deployment-files"
 }
@@ -800,7 +805,7 @@ main_menu() {
         echo "[3] Uninstall NMS"
         echo "[4] Exit"
         echo ""
-        read -p "Enter your choice [1-3]: " choice
+        read -p "Enter your choice [1-4]: " choice
         
         case $choice in
             1)
