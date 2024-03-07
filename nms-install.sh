@@ -656,11 +656,6 @@ redeploy_files() {
     # fetch values from JSON file
     fetch_configuration_values $install_json
     
-    # Stop all containers
-    bash "$dir/scripts/nms-service-restart.sh" -s -a || {
-        die "error" "Failed to execute container shutdown script" true
-    }
-
     # Remove existing configuration files
     delete_nms_subdir_contents $install_dir
     
@@ -719,9 +714,9 @@ redeploy_files() {
         chmod -R 700 "$path"
     done
 
-    # start the containers
-    bash "${install_dir}/scripts/nms-service-restart.sh" -a || {
-        die "error" "Failed to start containers." true
+    # Restart all containers
+    bash "$install_dir/scripts/nms-service-restart.sh" -a || {
+        die "error" "Failed to execute container restart script" true
     }
 
     log "info" "New configuration was applied successfully! You can now visit https://dashboards.nodemonitoring.io to check out the stats." false
