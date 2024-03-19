@@ -17,6 +17,8 @@
 ###                                                 Must be used in combination with --directory
 ###            -u | --update [-d <path> -c <path>]  Redeploy the stack with a new JSON configuration file.
 ###                                                 You must also provide the install directory and the JSON config path.
+###            -f | --force                         Skip all confirmations and accept all prompts.
+###
 
 ## Color variables
 RED=`tput setaf 1`
@@ -40,6 +42,7 @@ readonly prometheus_container_name="nms-prometheus"
 readonly promtail_container_name="nms-promtail"
 readonly cadvisor_container_name="nms-cadvisor"
 # init
+skip_confirm=false
 install_dir=""
 conf_file=""
 tmp_dir=""
@@ -140,6 +143,13 @@ create_temp_directory() {
 download_nms_repo() {
     log "info" "Additional files required for the deployment are available to download from GitHub ($repo_url)." false
     while true; do
+        if [ "$skip_confirm" = true ]; then
+            log "info" "Cloning repository into temp directory ${repo_dir}..." false
+            git clone "${repo_url}" "${repo_dir}" || {
+            die "error" "Could not clone the repository ${repo_url} to ${tmp_dir}" true
+            }
+            break
+        fi
         read -p "Do you want to proceed with the download? [Y/n]: " answer
         case $answer in
             [Yy]* )
@@ -190,13 +200,18 @@ validate_template_files() {
 
 check_requirements() {
     local -a missing_requirements=()
-    local -ra commands=("docker" "docker-compose" "jq" "sed" "git")
+    local -ra commands=("docker" "jq" "sed" "git")
     
     for cmd in "${commands[@]}"; do
         if [ ! -x "$(command -v $cmd)" ]; then
             missing_requirements+=("$cmd")
         fi
     done
+
+    # Check for Docker Compose (either as a standalone command or as part of Docker)
+    if ! command -v docker-compose &>/dev/null && ! docker compose version &>/dev/null; then
+        missing_requirements+=("docker-compose/docker compose")
+    fi
     
     if [ ${#missing_requirements[@]} -ne 0 ]; then
         die "error" "Missing requirement(s) for deployment: ${missing_requirements[*]}. Please follow the documentation at ${docs_url}" true
@@ -501,6 +516,10 @@ deploy_new_stack_option() {
     echo "Deploying NMS to $nms_dir using $conf_file"
     
     while true; do
+        if [ "$skip_confirm" = true ]; then
+            install_nms $nms_dir $conf_file
+            break
+        fi
         read -p "Do you want to continue? [Y/n]: " answer
         case $answer in
             [Yy]* )
@@ -633,6 +652,10 @@ apply_new_config_option () {
     echo "Updating NMS installation at $install_dir using $conf_file"
     
     while true; do
+        if [ "$skip_confirm" = true ]; then
+            redeploy_files $install_dir $conf_file
+            break
+        fi
         read -p "Do you want to continue? [Y/n]: " answer
         case $answer in
             [Yy]* )
@@ -754,6 +777,10 @@ uninstall_nms_option () {
     log "info" "This process will stop all NMS containers and delete the NMS directory ($install_dir)" false
     
     while true; do
+        if [ "$skip_confirm" = true ]; then
+            uninstall_nms $install_dir
+            break
+        fi
         read -p "Do you want to continue? [Y/n]: " answer
         case $answer in
             [Yy]* )
@@ -862,6 +889,10 @@ parse_user_options() {
                 opts_set=true
                 conf_file="${2}"
                 shift 2
+            ;;
+                --force|-f)
+                skip_confirm=true
+                shift
             ;;
             --)
                 shift
